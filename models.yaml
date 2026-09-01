@@ -1,0 +1,40 @@
+# ===== 模型注册表 =====
+# 所有厂商统一走 OpenAI 兼容接口，代码零改动即可接入新模型。
+# API Key 一律从环境变量读取（api_key_env 指定的变量名），严禁写在此文件。
+#
+# 新增 LLM：复制一个条目，改 id/name/base_url/model/api_key_env 即可。
+# 更换 Embedding：改 embedding_models 的 id + .env 中 EMBEDDING_MODEL/DIMENSIONS，
+#   注意：维度变化会导致旧索引失效，需重建索引（见 README）。
+
+chat_models:
+  - id: deepseek-chat
+    name: DeepSeek V3.2（硅基流动）
+    base_url: https://api.siliconflow.cn/v1
+    model: deepseek-ai/DeepSeek-V3.2
+    api_key_env: DEEPSEEK_API_KEY
+
+  - id: qwen-plus
+    name: 通义千问 Plus
+    base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
+    model: qwen-plus
+    api_key_env: DASHSCOPE_API_KEY
+
+  - id: glm-4-plus
+    name: 智谱 GLM-4-Plus
+    base_url: https://open.bigmodel.cn/api/paas/v4
+    model: glm-4-plus
+    api_key_env: ZHIPU_API_KEY
+
+  - id: moonshot-v1-8k
+    name: Kimi Moonshot 8K
+    base_url: https://api.moonshot.cn/v1
+    model: moonshot-v1-8k
+    api_key_env: MOONSHOT_API_KEY
+
+embedding_models:
+  - id: qwen3-embedding-8b
+    name: 硅基流动 Qwen3-Embedding-8B (1024维)
+    base_url: https://api.siliconflow.cn/v1
+    model: Qwen/Qwen3-Embedding-8B
+    api_key_env: SILICONFLOW_API_KEY
+    dimensions: 1024

@@ -1,0 +1,20 @@
+# ===== 服务器运行时依赖（阿里云 2C2G）=====
+fastapi==0.115.0
+uvicorn[standard]==0.30.0
+python-multipart>=0.0.9   # FastAPI 文件上传表单处理
+
+# LangChain 0.3 拆包：仅用于 TextLoader + 文本分割
+langchain==0.3.0
+langchain-community==0.3.0
+langchain-text-splitters==0.3.0
+
+# 向量库（本地持久化，显式传向量，不触发默认 embedding 下载）
+# 注: 0.5.0 的 chroma-hnswlib 无 Windows py3.12 wheel（需 MSVC 编译），
+#     1.x 自带 hnsw 实现且 API 兼容，Windows/Linux 均可直接安装
+chromadb==1.5.9
+
+# OpenAI 兼容 API 统一客户端（DeepSeek / 硅基流动 / 通义 / GLM / Kimi 通用）
+openai>=1.40.0
+
+python-dotenv==1.0.0
+pyyaml>=6.0

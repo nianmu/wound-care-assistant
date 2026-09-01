@@ -1,0 +1,14 @@
+# ===== 开发机专用（不装到服务器）=====
+-r requirements.txt
+
+# 测试
+pytest>=8.0
+httpx>=0.27
+
+# 本地文档转换（M5）：PDF / 扫描版OCR / EPUB
+pymupdf>=1.24.0
+pypdf>=4.0.0
+ebooklib>=0.18
+beautifulsoup4>=4.12
+lxml>=5.0
+# OCR 需另装系统级 Tesseract（见 tools/README）

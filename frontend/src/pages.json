@@ -1,0 +1,91 @@
+{
+	"pages": [
+		{
+			"path": "pages/chat/chat",
+			"style": {
+				"navigationBarTitleText": "智能问答",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/upload/upload",
+			"style": {
+				"navigationBarTitleText": "上传教材"
+			}
+		},
+		{
+			"path": "pages/settings/settings",
+			"style": {
+				"navigationBarTitleText": "学习设置"
+			}
+		},
+		{
+			"path": "pages/exam/exam",
+			"style": {
+				"navigationBarTitleText": "模拟测验"
+			}
+		},
+		{
+			"path": "pages/exam/quiz",
+			"style": {
+				"navigationBarTitleText": "答题"
+			}
+		},
+		{
+			"path": "pages/exam/result",
+			"style": {
+				"navigationBarTitleText": "成绩单"
+			}
+		},
+		{
+			"path": "pages/exam/wrong",
+			"style": {
+				"navigationBarTitleText": "错题本"
+			}
+		},
+		{
+			"path": "pages/exam/stats",
+			"style": {
+				"navigationBarTitleText": "学习报告"
+			}
+		},
+		{
+			"path": "pages/docs/docs",
+			"style": {
+				"navigationBarTitleText": "文档管理"
+			}
+		},
+		{
+			"path": "pages/doc-detail/doc-detail",
+			"style": {
+				"navigationBarTitleText": "文档详情"
+			}
+		}
+	],
+	"globalStyle": {
+		"navigationBarTextStyle": "white",
+		"navigationBarTitleText": "造口护理学习助手",
+		"navigationBarBackgroundColor": "#0E7C7B",
+		"backgroundColor": "#F5F6FA"
+	},
+	"tabBar": {
+		"color": "#8A8F99",
+		"selectedColor": "#0E7C7B",
+		"backgroundColor": "#FFFFFF",
+		"borderStyle": "black",
+		"list": [
+			{
+				"pagePath": "pages/chat/chat",
+				"text": "问答"
+			},
+			{
+				"pagePath": "pages/exam/exam",
+				"text": "测验"
+			},
+			{
+				"pagePath": "pages/docs/docs",
+				"text": "文档"
+			}
+		]
+	}
+}

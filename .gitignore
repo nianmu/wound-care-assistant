@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+*.egg-info/
+
+# 密钥与环境
+.env
+*.local
+
+# 数据与向量库（运行时生成）
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+chroma_db/
+!.gitkeep
+
+# 前端
+frontend/node_modules/
+frontend/dist/
+frontend/unpackage/
+
+# uv 缓存（工作区临时）
+.uv-cache/

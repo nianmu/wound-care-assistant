@@ -1,0 +1,64 @@
+"""FastAPI 应用入口。"""
+from __future__ import annotations
+
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from app.config import get_registry, get_settings
+from app.exam.router import router as exam_router
+from app.routers.api import router as api_router
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # 启动时校验配置与模型注册表可加载（不校验 Key 是否有效，仅在调用时惰性报错）
+    app.state.settings = get_settings()
+    app.state.registry = get_registry()
+    yield
+
+
+app = FastAPI(
+    title="造口伤口失禁护理 AI 学习助手",
+    description="基于教材的 RAG 精准问答（FastAPI + Chroma + 多模型）",
+    version="0.1.0",
+    lifespan=lifespan,
+)
+
+# 前端（uni-app H5 / 开发期 Vite）跨域放开；生产环境由 Nginx 同域反代
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+@app.get("/health")
+async def health():
+    """健康检查：返回服务状态、已配置模型清单（不含任何 Key）。"""
+    registry = get_registry()
+    return {
+        "status": "ok",
+        "service": "wound-care-assistant",
+        "models": {
+            "chat": [
+                {"id": mid, "name": registry.chat_model_info(mid)["name"]}
+                for mid in registry.chat_model_ids()
+            ],
+            "embedding": [
+                {"id": eid, "name": registry.embedding_model_info(eid)["name"]}
+                for eid in registry.embedding_model_ids()
+            ],
+        },
+        "default_model": get_settings().default_model,
+        "default_embedding": get_settings().embedding_model_id,
+        "top_k": get_settings().default_top_k,
+    }
+
+
+# 业务路由
+app.include_router(api_router)
+app.include_router(exam_router)
