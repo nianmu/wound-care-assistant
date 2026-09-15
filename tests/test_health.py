@@ -5,10 +5,24 @@ import os
 os.environ.setdefault("DEEPSEEK_API_KEY", "sk-test-placeholder")
 os.environ.setdefault("SILICONFLOW_API_KEY", "sk-test-placeholder")
 os.environ.setdefault("JWT_SECRET", "test-secret-for-pytest")  # 账户体系要求启动时存在
+os.environ.setdefault("CHROMA_PERSIST_DIR", "./.test_chroma")
 
+import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 
+from app.exam import store  # noqa: E402
 from app.main import app  # noqa: E402
+
+
+@pytest.fixture(autouse=True)
+def _isolated_db(tmp_path, monkeypatch):
+    """启动 lifespan 会写 users 表（ADMIN_PASSWORD 配置时引导建管理员）。
+
+    不隔离就会直接写真实的 data/exam.db——跑一次测试污染一次生产数据。
+    这里把 sqlite 指到临时文件，与 test_exam.py 保持一致。
+    """
+    monkeypatch.setattr(store, "_db_path", lambda: tmp_path / "exam.db")
+    yield
 
 
 def test_health():

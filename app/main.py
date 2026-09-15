@@ -38,11 +38,14 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# 前端（uni-app H5 / 开发期 Vite）跨域放开；生产环境由 Nginx 同域反代
+# 前端（uni-app H5 / 开发期 Vite）跨域放开；生产环境由 Nginx 同域反代。
+# allow_credentials 必须为 False：它与 allow_origins=["*"] 不能同时生效
+# （浏览器会拒绝通配源上的凭据请求）。本应用用 Authorization: Bearer 头
+# 携带登录态，而非 Cookie，因此不需要 credentials。
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
