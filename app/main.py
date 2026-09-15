@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.auth.router import router as auth_router
 from app.config import get_registry, get_settings
 from app.exam.router import router as exam_router
 from app.routers.api import router as api_router
@@ -14,8 +15,19 @@ from app.routers.api import router as api_router
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # 启动时校验配置与模型注册表可加载（不校验 Key 是否有效，仅在调用时惰性报错）
-    app.state.settings = get_settings()
+    settings = get_settings()
+    if not settings.jwt_secret:
+        raise RuntimeError("缺少 JWT_SECRET：账户体系需要它签发登录凭证（生成: openssl rand -hex 32）")
+    app.state.settings = settings
     app.state.registry = get_registry()
+
+    # 系统管理员引导：.env 配置了 ADMIN_PASSWORD 且库里尚无 admin 时自动创建（is_admin=1）。
+    # 未配置 → 跳过（health/正常运行不受影响，仅上传/删除保持受保护）。
+    if settings.admin_password:
+        from app.auth.security import hash_password
+        from app.exam import store
+        admin = store.ensure_admin(hash_password(settings.admin_password))
+        print(f"[auth] 管理员就绪: {admin['username']} (id={admin['id']})")
     yield
 
 
@@ -61,4 +73,5 @@ async def health():
 
 # 业务路由
 app.include_router(api_router)
+app.include_router(auth_router)
 app.include_router(exam_router)

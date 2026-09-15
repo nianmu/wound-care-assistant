@@ -1,11 +1,16 @@
 <template>
 	<view class="upload-page">
+		<!-- 管理员专属：非管理员显示提示并隐藏上传控件 -->
 		<view class="card intro">
 			<text class="card-title">📖 上传教材（.txt）</text>
 			<text class="card-desc">服务器只收纯文本，PDF / EPUB 请先在电脑上用一键转换工具转成 txt（见 tools/README.md）。</text>
 		</view>
 
-		<view class="card">
+		<view class="no-auth" v-if="!isAdmin">
+			<text class="no-auth-text">🔒 上传教材属于高危操作，仅系统管理员（admin）可执行。</text>
+		</view>
+
+		<view class="card" v-if="isAdmin">
 			<button class="pick-btn" @click="pickFile">选择文件</button>
 			<view class="file-info" v-if="fileName">
 				<text class="file-name">{{ fileName }}</text>
@@ -27,7 +32,7 @@
 </template>
 
 <script>
-import { uploadFile } from '../../utils/api.js'
+import { uploadFile, getUser } from '../../utils/api.js'
 
 export default {
   data() {
@@ -37,7 +42,12 @@ export default {
       fileSize: '',
       uploading: false,
       result: null,
+      isAdmin: false,
     }
+  },
+  onShow() {
+    const user = getUser()
+    this.isAdmin = !!(user && user.is_admin)
   },
   methods: {
     pickFile() {
@@ -85,6 +95,8 @@ export default {
 .intro {}
 .card-title { display: block; font-size: 32rpx; font-weight: 700; color: #333; margin-bottom: 12rpx; }
 .card-desc { display: block; font-size: 26rpx; color: #8A8F99; line-height: 1.7; }
+.no-auth { background: #FFF7E6; border: 2rpx solid #FFE0A3; border-radius: 16rpx; padding: 24rpx; margin-bottom: 24rpx; }
+.no-auth-text { font-size: 26rpx; color: #B7791F; line-height: 1.6; }
 .pick-btn { background: #EAF4F4; color: #0E7C7B; font-size: 28rpx; border-radius: 14rpx; }
 .file-info { display: flex; justify-content: space-between; align-items: center; margin: 20rpx 0; }
 .file-name { font-size: 28rpx; color: #333; max-width: 70%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

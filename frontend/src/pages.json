@@ -20,6 +20,12 @@
 			}
 		},
 		{
+			"path": "pages/auth/login",
+			"style": {
+				"navigationBarTitleText": "登录 / 注册"
+			}
+		},
+		{
 			"path": "pages/exam/exam",
 			"style": {
 				"navigationBarTitleText": "模拟测验"

@@ -25,6 +25,10 @@
 | `CHROMA_PERSIST_DIR` | `./chroma_db` | 向量库持久化目录 |
 | `DEFAULT_TOP_K` | `5` | 问答检索片段数 |
 | `RELEVANCE_THRESHOLD` | `0.35` | 相关度阈值（低于此不送 LLM） |
+| `JWT_SECRET` | **必填（无默认）** | 账户体系 JWT 签名密钥；**缺失则启动即报错**。生成：`openssl rand -hex 32` |
+| `JWT_EXPIRES_DAYS` | `7` | 登录凭证有效期（天） |
+| `REGISTER_INVITE_CODE` | 空（=禁止注册） | 注册邀请码：**为空则注册接口一律 403**（安全默认）；非空时注册必须提交匹配码 |
+| `ADMIN_PASSWORD` | 空（=不创建管理员） | 系统管理员引导密码：**配置后启动时自动创建 admin 用户**（is_admin=1，上传/删除教材等高危操作专属）；为空则无管理员（接口无人可用，仍受保护） |
 | （数据目录 `data_dir`/`raw_dir`/`processed_dir` 固定推导，不配置） | | |
 
 **.env 示例结构**（Key 用占位）：
@@ -50,6 +54,13 @@ EMBEDDING_DIMENSIONS=1024
 # 检索
 DEFAULT_TOP_K=5
 RELEVANCE_THRESHOLD=0.35
+
+# 账户体系（必填，缺失启动即报错）
+JWT_SECRET=请用 openssl rand -hex 32 生成
+JWT_EXPIRES_DAYS=7
+
+# 注册邀请码：为空 = 禁止注册（安全默认）；否则注册须匹配
+REGISTER_INVITE_CODE=family-invite-code
 ```
 
 > ⚠️ `EMBEDDING_MODEL`（模型名）仅在调用 API 时用；`EMBEDDING_MODEL_ID` 是 models.yaml 里的条目 id，`ModelRegistry.embedding_model()` 会用它查注册表。两者分开：代码以 id 查表，id→模型名的映射在 models.yaml。

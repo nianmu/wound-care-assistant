@@ -9,7 +9,7 @@
 					<text class="doc-meta" v-if="loaded">{{ total }} 个切片</text>
 				</view>
 			</view>
-			<button class="del-btn" :disabled="deleting" @click="confirmDelete">删除文档</button>
+			<button class="del-btn" v-if="isAdmin" :disabled="deleting" @click="confirmDelete">删除文档</button>
 		</view>
 
 		<!-- 切片列表 -->
@@ -35,7 +35,7 @@
 </template>
 
 <script>
-import { getDocumentChunks, deleteDocument } from '../../utils/api.js'
+import { getDocumentChunks, deleteDocument, getUser } from '../../utils/api.js'
 
 export default {
   data() {
@@ -45,11 +45,14 @@ export default {
       total: 0,
       loaded: false,
       deleting: false,
+      isAdmin: false,
     }
   },
   onLoad(options) {
     this.source = decodeURIComponent(options.source || '')
     uni.setNavigationBarTitle({ title: this.source.length > 12 ? this.source.slice(0, 12) + '…' : this.source })
+    const user = getUser()
+    this.isAdmin = !!(user && user.is_admin)
     this.load()
   },
   methods: {

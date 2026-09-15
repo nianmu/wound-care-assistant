@@ -2,6 +2,13 @@
 
 > 每个页面的职责、入口、关键交互。页面路径均相对 `frontend/src/pages/`。
 
+## 0. auth/login.vue — 登录 / 注册（账户体系）
+
+- 一个页面两个 tab：**登录** / **注册**
+- 注册：用户名（3~32 位小写字母/数字/下划线）+ **邀请码**（防外人随意注册，向家人索取）+ 密码（≥8 位含字母数字）+ 昵称（选填）→ 自动登录
+- 登录成功 → `setAuth(token, user)`（localStorage `wc_token`/`wc_user`）→ `navigateBack`（无上级页则 switchTab 到测验）
+- 无登录态入口：测验页顶栏"未登录 · 点此登录/注册"、401 统一跳转（api.js `redirectLogin`）
+
 ## 1. chat/chat.vue — 智能问答（tabBar 首页）
 
 - **自定义导航栏**：左侧标题"造口护理学习助手"，右侧 ⚙️（`openMenu`）
@@ -15,13 +22,14 @@
 
 ## 2. exam/exam.vue — 模拟测验主页
 
+- **用户条**（顶部）：未登录显示"未登录 · 点此登录/注册"（点击 → auth/login）；已登录显示昵称 + **退出**按钮（clearAuth 后回登录页）
 - **出题设置卡**：题型 4 选（混合/单选/多选/案例）+ 题量 4 档（3/5/10/15）
 - **四大模式入口**：
   - 🎯 练一练 → `startPractice(false)`：AI 出题 → 跳 quiz，即时判分
   - 📄 模拟考试 → `startPractice(true)`：出题 → quiz（计时，每题 90s）
   - 📕 错题本 → wrong 页（角标显示待巩固数）
   - 📊 学习报告 → stats 页
-- `startPractice(isExam)`：`generateQuestions` → `getApp().globalData.examQuestions` 存题 → `navigateTo quiz?mode=&timeout=`（模拟考 timeout = 题数×90）
+- `startPractice(isExam)`：`generateQuestions`（登录态自动带 token，401 会跳登录）→ `getApp().globalData.examQuestions` 存题 → `navigateTo quiz?mode=&timeout=`（模拟考 timeout = 题数×90）
 
 ## 3. exam/quiz.vue — 答题
 
@@ -62,15 +70,16 @@
 
 ## 8. doc-detail/doc-detail.vue — 文档详情
 
-- 顶部：📘 文档名 + 切片数 + **删除文档**按钮（确认弹窗 → DELETE → navigateBack）
+- 顶部：📘 文档名 + 切片数 + **删除文档**按钮（**仅管理员可见**：`user.is_admin`；非管理员无删除入口）
+- 删除流程：确认弹窗 → DELETE → navigateBack（遇 401/403 由 api.js 处理并提示）
 - 切片列表：`scroll-view` 内部滚动；每条 #序号 + 页码标签 + 内容（默认折叠 max-height）+ "展开全文 ▼/收起 ▲"
 - `onLoad` 里 `setNavigationBarTitle` 截断长书名
 
 ## 9. upload/upload.vue — 上传教材
 
-- 说明卡（服务器只收 txt/md，PDF/EPUB 先转换）
-- 选择文件（`uni.chooseFile`，extension: txt/md）→ 上传 → 显示切片数 + 知识库总量
-- 提示：已上传会覆盖同名再增量加入
+- **管理员专属**：`onShow` 读 `user.is_admin`——非管理员只显示"🔒 仅系统管理员可执行"提示，隐藏选择/上传控件
+- 管理员：`uni.chooseFile`（txt/md）→ `uploadFile` → 显示切片入库数与知识库总量
+- 提示：已上传会覆盖同名再增量加入；`.pdf/.epub` 引导先用 tools/ 转换
 
 ## 10. settings/settings.vue — 学习设置
 

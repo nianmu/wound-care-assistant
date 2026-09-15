@@ -60,7 +60,59 @@
 { "deleted_chunks": 959, "source": "伤口护理学" }
 ```
 
-## 3. 问答
+## 3. 账户体系（B 模式：用户名+密码+JWT）
+
+> 设计详见 [specs/2026-09-01-user-auth-design.md](../specs/2026-09-01-user-auth-design.md)。
+> 考试模块全部端点要求登录（`Authorization: Bearer <JWT>`）；问答/文档类不强制。
+
+### POST /api/auth/register — 注册（注册即登录，需邀请码）
+
+```json
+// 请求
+{ "username": "mama", "password": "abc12345", "display_name": "妈妈", "invite_code": "95279527" }
+// 200
+{
+  "token": "eyJ...",
+  "user": { "id": 1, "username": "mama", "display_name": "妈妈" },
+  "migrated": { "exam_attempts": 13, "wrong_book": 18, "question_stats": 10 },
+  "is_first": true
+}
+// 403（邀请码错误 / 未配置邀请码=未开放注册）
+{ "detail": "注册邀请码错误" }
+```
+
+- 用户名：3~32 位小写字母/数字/下划线（大写自动转小写）
+- 密码：≥8 位，含字母+数字；`user` **永不返回哈希字段**
+- **必须携带 `invite_code`**：与 `REGISTER_INVITE_CODE` 一致才放行；该配置为空时一律 403（防外人随意注册）
+- `is_first=true` 时自动接管历史（user_id=0）数据，`migrated` 为迁移计数
+
+### POST /api/auth/login — 登录
+
+```json
+{ "username": "mama", "password": "abc12345" }
+// 200 → { "token", "user" }
+// 401 → 用户名或密码错误；429 → 尝试次数过多（同用户名/IP 错 5 次锁 5 分钟）
+```
+
+### GET /api/auth/me — 当前用户
+
+- 带 token → `{ "user": {...} }`；无/过期 → 401
+
+### 鉴权矩阵（受保护接口）
+
+| 接口 | 鉴权 | 隔离维度 |
+| :-- | :-- | :-- |
+| /api/exam/generate /submit /wrong-book /stats /topics | ✅ 必须登录 | submit 按 user_id 落库；wrong-book/stats 按 user_id 过滤 |
+| **/api/upload**（上传教材） | ✅ **仅管理员**（is_admin=1） | 非管理员 403 |
+| **DELETE /api/documents/{source}**（删除教材） | ✅ **仅管理员**（is_admin=1） | 非管理员 403 |
+| /api/ask, /api/ask/stream | ❌ 不强制 | — |
+| GET /api/documents, /api/documents/{source}/chunks | ❌ 不强制（查看开放） | — |
+| /api/auth/* | 注册/登录开放；/me 需登录 | — |
+
+> 管理员：系统启动时由 `ADMIN_PASSWORD`（.env）引导创建 `admin`（is_admin=1），唯一管理员。
+> `is_first` 判定按普通用户计，管理员的存在不影响“首个注册家人接管历史数据”。
+
+## 4. 问答
 
 ### POST /api/ask — 非流式问答
 
@@ -115,7 +167,7 @@ data: {"type":"done"}
 }
 ```
 
-## 4. 模拟测验
+## 5. 模拟测验
 
 ### POST /api/exam/generate — AI 出题
 
@@ -195,16 +247,19 @@ data: {"type":"done"}
 { "topics": ["压疮分期", "造口用品", "失禁分类", …] }
 ```
 
-## 5. 状态码约定
+## 6. 状态码约定
 
 | 码 | 场景 |
 | :-- | :-- |
 | 200 | 成功 |
-| 400 | 参数错误 / 格式不支持 / 知识库空 / 题目与答案数量不匹配 |
+| 400 | 参数错误 / 格式不支持 / 知识库空 / 用户名重复或不合规 / 题目与答案数量不匹配 |
+| 401 | 未登录 / 登录过期 / 用户名或密码错误 |
+| 403 | 注册邀请码错误 / 未开放注册 |
 | 404 | 未知模型 / 未知来源 |
+| 429 | 登录尝试过多被临时锁定 |
 | 500 | 模型 Key 缺失 / 生成中断等服务器异常（frontend 会显示 detail） |
 
-## 6. 修改 API 后
+## 7. 修改 API 后
 
 1. 更新本文档
 2. 同步前端 `frontend/src/utils/api.js` 对应函数

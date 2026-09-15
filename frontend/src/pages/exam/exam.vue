@@ -1,5 +1,12 @@
 <template>
 	<view class="exam-page">
+		<!-- 当前用户条（账户体系）：未登录可点去登录，登录后显示昵称并可退出 -->
+		<view class="user-bar" @click="goUser">
+			<text class="user-info">{{ user ? ('👤 ' + user.display_name) : '未登录 · 点此登录/注册' }}</text>
+			<text v-if="user" class="logout" @click.stop="logout">退出</text>
+			<text v-else class="logout">›</text>
+		</view>
+
 		<!-- 题目配置 -->
 		<view class="card">
 			<text class="card-title">📝 出题设置</text>
@@ -59,7 +66,7 @@
 </template>
 
 <script>
-import { generateQuestions, getWrongBook } from '../../utils/api.js'
+import { generateQuestions, getWrongBook, getToken, getUser, clearAuth } from '../../utils/api.js'
 
 export default {
   data() {
@@ -74,14 +81,35 @@ export default {
       countOptions: [3, 5, 10, 15],
       count: 5,
       wrongCount: 0,
+      user: null,
     }
   },
   onShow() {
-    this.loadWrongCount()
+    this.user = getToken() ? getUser() : null
+    if (this.user) this.loadWrongCount()
   },
   methods: {
     loadWrongCount() {
       getWrongBook().then((d) => { this.wrongCount = d.total || 0 }).catch(() => {})
+    },
+    goUser() {
+      if (!this.user) uni.navigateTo({ url: '/pages/auth/login' })
+    },
+    logout() {
+      uni.showModal({
+        title: '退出登录',
+        content: '退出后此设备将回到未登录状态。',
+        confirmText: '退出',
+        confirmColor: '#C45656',
+        success: (r) => {
+          if (r.confirm) {
+            clearAuth()
+            this.user = null
+            this.wrongCount = 0
+            uni.navigateTo({ url: '/pages/auth/login' })
+          }
+        },
+      })
     },
     startPractice(isExam) {
       uni.showLoading({ title: 'AI 出题中…' })
@@ -120,6 +148,9 @@ export default {
 
 <style scoped>
 .exam-page { box-sizing: border-box; padding: 24rpx; background: #F5F6FA; min-height: calc(100vh - var(--window-top) - var(--window-bottom)); }
+.user-bar { display: flex; align-items: center; justify-content: space-between; background: #FFFFFF; border-radius: 16rpx; padding: 16rpx 24rpx; margin-bottom: 20rpx; }
+.user-info { font-size: 26rpx; color: #333; }
+.logout { font-size: 26rpx; color: #C45656; font-weight: 600; }
 .card { background: #FFFFFF; border-radius: 20rpx; padding: 24rpx; margin-bottom: 24rpx; }
 .card-title { display: block; font-size: 30rpx; font-weight: 700; color: #333; margin-bottom: 20rpx; }
 .config-row { display: flex; align-items: center; margin-bottom: 16rpx; }

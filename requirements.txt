@@ -18,3 +18,7 @@ openai>=1.40.0
 
 python-dotenv==1.0.0
 pyyaml>=6.0
+
+# 账户体系：密码哈希 + JWT（B 模式，见 docs/specs/2026-09-01-user-auth-design.md）
+bcrypt==4.2.1
+PyJWT==2.9.0

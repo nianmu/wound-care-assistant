@@ -9,12 +9,14 @@ def grade(
     answers: list[list[str]],
     mode: str = "practice",
     topic: str | None = None,
+    user_id: int = 0,
 ) -> dict:
     """判分。answers[i] 为第 i 题的作答（如 ["B"] 或 ["A","C"]）。
 
     - 单选/案例：完全匹配才对
     - 多选：与标准答案集合完全一致才对（多选/少选均错）
-    返回结果含每题对错与解析，并落库：错题本 + 题目统计 + 答题记录。
+    返回结果含每题对错与解析，并落库（按 user_id 隔离）：
+    错题本 + 题目统计 + 答题记录。
     """
     assert len(questions) == len(answers), "题目与答案数量不匹配"
     correct_count = 0
@@ -38,17 +40,17 @@ def grade(
             "source": q.get("source"),
             "page": q.get("page"),
         })
-        # 落库
-        store.record_answer(q["id"], is_correct)
+        # 落库（按用户）
+        store.record_answer(q["id"], is_correct, user_id)
         if not is_correct:
-            store.add_wrong(q["id"], sorted(user))
+            store.add_wrong(q["id"], sorted(user), user_id)
         else:
-            store.mark_wrong_resolved(q["id"])
+            store.mark_wrong_resolved(q["id"], user_id)
 
     total = len(questions)
     score = round(correct_count / total * 100) if total else 0
     attempt_id = store.save_attempt(
-        mode=mode, topic=topic, total=total, correct=correct_count, score=score, detail=details
+        mode=mode, topic=topic, total=total, correct=correct_count, score=score, detail=details, user_id=user_id
     )
     return {
         "attempt_id": attempt_id,

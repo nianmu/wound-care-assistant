@@ -4,6 +4,7 @@ import os
 # 测试前不依赖 .env；保证能加载模型注册表即可
 os.environ.setdefault("DEEPSEEK_API_KEY", "sk-test-placeholder")
 os.environ.setdefault("SILICONFLOW_API_KEY", "sk-test-placeholder")
+os.environ.setdefault("JWT_SECRET", "test-secret-for-pytest")  # 账户体系要求启动时存在
 
 from fastapi.testclient import TestClient  # noqa: E402
 

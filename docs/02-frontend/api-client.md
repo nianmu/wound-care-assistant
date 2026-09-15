@@ -4,20 +4,30 @@
 
 ## 1. api.js 函数清单
 
-| 函数 | 方法/路径 | 参数 | 返回 | 调用方 |
-| :-- | :-- | :-- | :-- | :-- |
-| `getModels()` | GET /api/models | — | `{default, chat_models[], embedding}` | chat, settings |
-| `askQuestion()` | POST /api/ask | (question, modelId, topK, history) | `{answer, sources, model, top_k_used}` | （预留，未用） |
-| `askQuestionStream()` | POST /api/ask/stream | (question, modelId, topK, history, callbacks) | — (SSE 回调) | chat |
-| `uploadFile(filePath, name)` | POST /api/upload | multipart `file` | `{statusCode, data}` | upload |
-| `getDocuments()` | GET /api/documents | — | `{sources, total_chunks}` | docs, exam |
-| `getDocumentChunks(source)` | GET /api/documents/{source}/chunks | source（自动 encodeURIComponent） | `{source, total, chunks}` | doc-detail |
-| `deleteDocument(source)` | DELETE /api/documents/{source} | source | `{deleted_chunks, source}` | doc-detail |
-| `generateQuestions(opts)` | POST /api/exam/generate | `{count, qtype, source, topic, reuse_cached}`，**timeout 180s** | `{questions, generated, reused, skipped}` | exam |
-| `submitAnswers(questions, answers, mode, topic)` | POST /api/exam/submit | 数组 | `{attempt_id, total, correct, score, details}` | quiz, wrong |
-| `getWrongBook()` | GET /api/exam/wrong-book | — | `{total, questions}` | exam, wrong |
-| `getStats()` | GET /api/exam/stats | — | `{overall_accuracy, by_topic, weak_topics, attempts}` | stats |
-| `getExamTopics()` | GET /api/exam/topics | — | `{topics}` | （预留，章节练习） |
+| 函数 | 方法/路径 | 参数 | 鉴权 | 返回 | 调用方 |
+| :-- | :-- | :-- | :-- | :-- | :-- |
+| `getToken()/getUser()/setAuth()/clearAuth()` | 本地登录态工具 | — | — | localStorage `wc_token`/`wc_user` | 全局 |
+| `register()` | POST /api/auth/register | (username, password, displayName) | 无 | `{token, user}` | login |
+| `login()` | POST /api/auth/login | (username, password) | 无 | `{token, user}` | login |
+| `getMe()` | GET /api/auth/me | — | ✅ | `{user}` | （预留） |
+| `getModels()` | GET /api/models | — | 无 | `{default, chat_models[], embedding}` | chat, settings |
+| `askQuestion()` | POST /api/ask | (question, modelId, topK, history) | 无 | `{answer, sources, model, top_k_used}` | （预留，未用） |
+| `askQuestionStream()` | POST /api/ask/stream | (question, modelId, topK, history, callbacks) | 无 | — (SSE 回调) | chat |
+| `uploadFile(filePath, name)` | POST /api/upload | multipart `file` | 无 | `{statusCode, data}` | upload |
+| `getDocuments()` | GET /api/documents | — | 无 | `{sources, total_chunks}` | docs, exam |
+| `getDocumentChunks(source)` | GET /api/documents/{source}/chunks | source（自动 encodeURIComponent） | 无 | `{source, total, chunks}` | doc-detail |
+| `deleteDocument(source)` | DELETE /api/documents/{source} | source | 无 | `{deleted_chunks, source}` | doc-detail |
+| `generateQuestions(opts)` | POST /api/exam/generate | `{count, qtype, source, topic, reuse_cached}`，**timeout 180s** | ✅ | `{questions, generated, reused, skipped}` | exam |
+| `submitAnswers(questions, answers, mode, topic)` | POST /api/exam/submit | 数组 | ✅ | `{attempt_id, total, correct, score, details}` | quiz, wrong |
+| `getWrongBook()` | GET /api/exam/wrong-book | — | ✅ | `{total, questions}` | exam, wrong |
+| `getStats()` | GET /api/exam/stats | — | ✅ | `{overall_accuracy, by_topic, weak_topics, attempts}` | stats |
+| `getExamTopics()` | GET /api/exam/topics | — | ✅ | `{topics}` | （预留，章节练习） |
+
+## 1.5 统一请求封装（request()）
+
+- 所有函数走内部 `request()`：自动附 `Authorization: Bearer <wc_token>`（有 token 时）
+- `auth=true` 的接口：无 token → 直接引导登录；**401 → 清登录态 + 跳登录页**（`redirectLogin`，登录页内不重复跳）
+- 问答/文档类接口 `auth=false`：不强制登录，401 不处理
 
 ## 2. askQuestionStream — SSE 流式（重点）
 

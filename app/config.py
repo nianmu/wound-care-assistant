@@ -37,6 +37,17 @@ class Settings:
     raw_dir: Path = BASE_DIR / "data" / "raw"
     processed_dir: Path = BASE_DIR / "data" / "processed"
 
+    # 认证（账户体系，缺失 JWT_SECRET 时启动即报错，防默认密钥上线）
+    jwt_secret: str = field(default_factory=lambda: os.getenv("JWT_SECRET", ""))
+    jwt_expires_days: int = field(default_factory=lambda: int(os.getenv("JWT_EXPIRES_DAYS", "7")))
+
+    # 注册邀请码（外人不许随意注册）：为空 = 禁止注册；注册时必须匹配该码
+    register_invite_code: str = field(default_factory=lambda: os.getenv("REGISTER_INVITE_CODE", ""))
+
+    # 系统管理员引导密码（高危操作权限）：为空 = 不自动创建 admin；
+    # 配置后启动时若无 admin 用户则自动创建（username=admin, is_admin=1）
+    admin_password: str = field(default_factory=lambda: os.getenv("ADMIN_PASSWORD", ""))
+
 
 class ModelRegistry:
     """模型注册表：解析 models.yaml，Key 一律从环境变量读取，不落配置文件。"""

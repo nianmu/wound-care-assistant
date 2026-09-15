@@ -1,0 +1,1 @@
+"""账户体系（B 模式：用户名+密码+JWT）。见 docs/specs/2026-09-01-user-auth-design.md。"""

@@ -30,36 +30,49 @@
 
 ## 3. SQLite — data/exam.db
 
-schema（`app/exam/store.py` 自动建表）：
+schema（`app/exam/store.py` 自动建表；`_migrate_schema` 幂等补列/重建，旧库自动升级）：
 
 ```sql
-exam_questions   -- 题目缓存（AI 出题 + 缓存复用）
+users            -- 用户（账户体系 B 模式，2026-09-01 引入）
+  id, username(UNIQUE), password_hash(bcrypt), display_name,
+  is_admin(0普通/1系统管理员), created_at
+  -- 系统管理员（admin）由启动时 ADMIN_PASSWORD 引导创建，唯一
+
+exam_questions   -- 题目缓存（公共，AI 出题 + 缓存复用）
   id, scope_key, qtype, topic, source, page, question,
   options(JSON), answer(JSON), explanation, confidence,
   used_count, created_at
   -- 索引: scope_key（同范围复用查询）
 
-exam_attempts    -- 做题记录/成绩
+exam_attempts    -- 做题记录/成绩（按用户）
   id, mode(practice|exam|chapter), topic, total, correct,
-  score, detail(JSON 逐题), created_at
+  score, detail(JSON 逐题), created_at, user_id
 
-wrong_book       -- 错题本
+wrong_book       -- 错题本（按用户）
   id, question_id(FK→exam_questions), user_answer(JSON),
-  wrong_count, last_wrong_at, resolved(0待巩固/1已掌握)
+  wrong_count, last_wrong_at, resolved(0待巩固/1已掌握), user_id
+  -- 索引: (user_id, resolved)
 
-question_stats   -- 题目统计
-  question_id(PK), attempts, correct
+question_stats   -- 题目统计（按用户，复合主键）
+  question_id, user_id, attempts, correct
+  -- PRIMARY KEY (question_id, user_id)
+  -- 旧表(单列 PK)会在首个连接时自动重建为复合主键（数据保留）
 ```
+
+- `user_id=0` = 未归属历史数据；**首个用户注册时 `migrate_legacy_to_user` 一次性接管**（UPDATE 三表）
+- 索引：`idx_wrong_user(user_id,resolved)`、`idx_stats_user(user_id)`、`idx_attempts_user(user_id)`
 
 ### 关键查询（store.py）
 
 | 函数 | 说明 |
 | :-- | :-- |
-| `get_questions_by_scope(scope_key)` | 同范围缓存题 |
-| `save_attempt(...)` | 记录成绩，返回 attempt_id |
-| `add_wrong / mark_wrong_resolved` | 错题增/清 |
-| `get_wrong_questions()` | 待巩固错题（JOIN 题目） |
-| `record_answer` / `topic_stats()` | 统计 + 按主题聚合正确率 |
+| `get_questions_by_scope(scope_key)` | 同范围缓存题（公共） |
+| `user_count / create_user / get_user_by_*` | 用户 CRUD（账户体系） |
+| `migrate_legacy_to_user(uid)` | 首个用户注册时接管 user_id=0 历史数据 |
+| `save_attempt(..., user_id)` | 记录成绩（按用户），返回 attempt_id |
+| `add_wrong / mark_wrong_resolved(..., user_id)` | 错题增/清（按用户） |
+| `get_wrong_questions(user_id)` | 待巩固错题（JOIN 题目，按用户） |
+| `record_answer / topic_stats(user_id)` | 统计 + 按主题聚合正确率（按用户） |
 
 ### 数据流
 

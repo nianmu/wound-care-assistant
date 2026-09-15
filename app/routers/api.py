@@ -5,10 +5,11 @@ import asyncio
 import json
 from pathlib import Path
 
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
+from app.auth.deps import get_current_admin
 from app.config import get_registry, get_settings
 from app.generation.llm import LLMClient
 from app.ingestion.chunker import split_documents
@@ -107,9 +108,10 @@ def _ingest(dest: Path, source_label: str) -> int:
 
 
 @router.post("/upload")
-async def upload_file(file: UploadFile = File(...)):
+async def upload_file(file: UploadFile = File(...), _admin: dict = Depends(get_current_admin)):
     """接收教材（txt/md）→ 切片 → 向量化 → 入库。返回 chunk 数与来源名。
 
+    ⚠️ 高危操作：仅系统管理员（is_admin=1）可上传，非管理员 403。
     服务器不做 PDF/EPUB 解析（保持 2C2G 轻量）；PDF/EPUB 请在开发机
     用 tools/ 转换（见 tools/README.md）后上传 txt。
     """
@@ -236,8 +238,11 @@ async def get_document_chunks(source: str):
 
 
 @router.delete("/documents/{source}")
-async def delete_document(source: str):
-    """删除某个来源的全部切片（含 data/raw 原始文件，匹配任意扩展名）。"""
+async def delete_document(source: str, _admin: dict = Depends(get_current_admin)):
+    """删除某个来源的全部切片（含 data/raw 原始文件，匹配任意扩展名）。
+
+    ⚠️ 高危操作：仅系统管理员（is_admin=1）可删除，非管理员 403。
+    """
     store = get_store()
     n = store.delete_source(source)
     raw_dir = get_settings().raw_dir
