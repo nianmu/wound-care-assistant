@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import threading
+import time
 from pathlib import Path
 
 import chromadb
@@ -160,3 +161,4 @@ class VectorStore:
                 name=self.collection,
                 metadata={"hnsw:space": "cosine"},
             )
+        self._invalidate_meta()

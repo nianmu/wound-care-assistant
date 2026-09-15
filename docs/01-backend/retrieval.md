@@ -38,13 +38,13 @@ class Embedder:
 | 方法 | 说明 |
 | :-- | :-- |
 | `get_store()` | 进程级单例入口（线程安全） |
-| `add_documents(docs)` | 向量化 + 入库；要求切片带 `doc_id` 或 `chunk_id` 元数据 |
+| `add_documents(docs)` | 向量化 + 入库；要求切片带 `doc_id` 或 `chunk_id` 元数据；**写后失效元数据缓存** |
 | `similarity_search(query, k)` | 返回 `[(Document, score)]`；**score = 1 - cosine_distance**，钳位 [0,1] |
-| `count()` | 总数 |
-| `sources()` | 已索引来源名（去重） |
-| `delete_source(source)` | 删某教材全部切片（`where={"source": ...}`） |
+| `count()` | 总数（TTL 缓存，写失效） |
+| `sources()` | 已索引来源名（去重；**TTL 缓存 _META_TTL=25s**：列表接口高频调用，全量拉 metadata 单次 ~130ms，无缓存时高并发会串行排队到秒级） |
+| `delete_source(source)` | 删某教材全部切片（`where={"source": ...}`），写后失效缓存 |
 | `get_source_chunks(source, limit)` | 文档详情页用：按来源取切片，按 page/序号排序 |
-| `reset()` | 删集合重建（换 embedding 后全量重建用） |
+| `reset()` | 删集合重建（换 embedding 后全量重建用），写后失效缓存 |
 
 ### 检索返回结构
 
