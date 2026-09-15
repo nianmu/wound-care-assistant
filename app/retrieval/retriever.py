@@ -45,6 +45,11 @@ class VectorStore:
         )
         # 所有公开方法在 _lock 下执行（Chroma PersistentClient 非线程安全）
         self._lock = threading.Lock()
+        # sources()/count() 的 TTL 缓存：列表接口被高频调用（每个页面加载都刷），
+        # 全量拉 metadata 单次 ~130ms，40 并发时会串行排队到秒级。
+        # 只在写入（add/delete/reset）后失效，正常只读场景 0 开销。
+        self._meta_cache: dict = {"ts": 0.0, "sources": None, "count": None}
+        self._META_TTL = 25.0  # 秒；写操作会立即失效，TTL 只是防止极端情况下读穿
 
     # ---- 索引 ----
     def add_documents(self, docs: list[Document]) -> int:
@@ -67,6 +72,7 @@ class VectorStore:
             raise ValueError("切片缺少 doc_id/chunk_id 元数据，无法入库")
         with self._lock:
             self._col.add(ids=ids, embeddings=vectors, documents=texts, metadatas=metadatas)
+        self._invalidate_meta()
         return len(ids)
 
     # ---- 检索 ----
@@ -86,15 +92,33 @@ class VectorStore:
 
     # ---- 管理 ----
     def count(self) -> int:
+        now = time.monotonic()
         with self._lock:
-            return self._col.count()
+            if self._meta_cache["count"] is not None and now - self._meta_cache["ts"] < self._META_TTL:
+                return self._meta_cache["count"]
+            n = self._col.count()
+            self._meta_cache["count"] = n
+            self._meta_cache["ts"] = now
+            return n
 
     def sources(self) -> list[str]:
-        """已索引的来源列表（distinct source 元数据）。"""
+        """已索引的来源列表（distinct source 元数据）。TTL 缓存，写操作后失效。"""
+        now = time.monotonic()
         with self._lock:
+            if self._meta_cache["sources"] is not None and now - self._meta_cache["ts"] < self._META_TTL:
+                return list(self._meta_cache["sources"])
             res = self._col.get(include=["metadatas"])
-        srcs = {m.get("source", "unknown") for m in res["metadatas"]}
-        return sorted(srcs)
+            srcs = sorted({m.get("source", "unknown") for m in res["metadatas"]})
+            self._meta_cache["sources"] = srcs
+            self._meta_cache["count"] = len(res["ids"])
+            self._meta_cache["ts"] = now
+            return srcs
+
+    def _invalidate_meta(self) -> None:
+        with self._lock:
+            self._meta_cache["ts"] = 0.0
+            self._meta_cache["sources"] = None
+            self._meta_cache["count"] = None
 
     def delete_source(self, source: str) -> int:
         with self._lock:
@@ -102,6 +126,7 @@ class VectorStore:
             ids = res["ids"]
             if ids:
                 self._col.delete(ids=ids)
+        self._invalidate_meta()
         return len(ids)
 
     def get_source_chunks(self, source: str, limit: int = 500) -> list[dict]:

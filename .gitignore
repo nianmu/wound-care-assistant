@@ -16,6 +16,13 @@ data/processed/*
 chroma_db/
 !.gitkeep
 
+# 运行时数据库：含用户口令哈希（bcrypt）与个人成绩，不入版本库
+# 备份/迁移请直接拷贝该文件，见 docs/05-data.md
+data/exam.db
+
+# 测试残留（pytest 用 CHROMA_PERSIST_DIR=./.test_chroma）
+.test_chroma/
+
 # 前端
 frontend/node_modules/
 frontend/dist/
@@ -23,3 +30,6 @@ frontend/unpackage/
 
 # uv 缓存（工作区临时）
 .uv-cache/
+
+# 本机工作区状态（Agent 记忆等，仅本机使用）
+.workbuddy/
